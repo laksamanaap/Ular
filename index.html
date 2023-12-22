@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        #game-canvas {
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+            margin: 0 auto;
+        }
+
+        #game-score {
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        #game-score-wrapper {
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+            gap: 64px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-score-wrapper">
+        <h4 id="game-score">Score : </h4>
+        <h4 id="game-highscore">High Score : </h4>
+    </div>
+    <canvas id="game-canvas"></canvas>
+
+    <script src="main.js"></script>
+</body>
+</html>
