@@ -1,131 +1,174 @@
 const canvas = document.getElementById("game-canvas");
-const ctx = canvas.getContext("2d"); // The 2d
+const ctx = canvas.getContext("2d");
 
-// Detect user key event
-const keyPress = (e) => {
-  console.log(e.code);
-  // When the key
-  if (e.code === "ArrowUp" && y_axis !== 10) {
-    x_axis = 0;
-    y_axis -= 10;
-  }
-
-  if (e.code === "ArrowDown" && y_axis !== -10) {
-    x_axis = 0;
-    y_axis += 10;
-  }
-
-  if (e.code === "ArrowLeft" && x_axis !== 10) {
-    x_axis -= 10;
-    y_axis = 0;
-  }
-
-  if (e.code === "ArrowRight" && x_axis !== -10) {
-    x_axis += 10;
-    y_axis = 0;
-  }
-};
-
-// Init Key Event
-document.addEventListener("keydown", keyPress);
-
-// Init Width and Height
-canvas.width = 600;
+canvas.width = 1000;
 canvas.height = 500;
 
-// Init Variable
-let startCheck = false;
-let endCheck = false;
-let ender;
-let mainTime;
-let snake = [{ x: 20, y: 100 }];
-let speed = 0.1; // Speed of snake
+let snake = [{ x: 30, y: 100, width: 32, height: 32 }];
+let direction = { x: 10, y: 0 };
+let speed = 2; // Speed of snake
+let eatenFood = false;
+let food = {};
+let score = 0;
+let highScore = 0; // Initialize high score variable
 
-// Init Snake position
-let x_axis = 10;
-let y_axis = 0;
+const snakeColors = ["orange", "red", "blue", "purple", "green"];
 
-// Init Random Food
-let x_food;
-let y_food;
-
-// Draw Snake
 const drawSnake = () => {
-  for (let i = 0; i < snake.length; i++) {
+  snake.forEach((segment, index) => {
+    ctx.fillStyle =
+      index === 0 ? snakeColors[0] : snakeColors[index % snakeColors.length];
+
     ctx.beginPath();
-    ctx.arc(snake[i].x, snake[i].y, 16, 0, Math.PI * 2);
-    ctx.fillStyle = "purple";
+    ctx.arc(
+      segment.x + segment.width / 2,
+      segment.y + segment.height / 2,
+      segment.width / 2,
+      0,
+      Math.PI * 2
+    );
     ctx.fill();
+    ctx.strokeStyle = "black";
+    ctx.lineWidth = 2;
+    ctx.stroke();
     ctx.closePath();
+  });
+};
+
+const moveSnake = () => {
+  const newHead = {
+    x: snake[0].x + direction.x * speed,
+    y: snake[0].y + direction.y * speed,
+    width: 32,
+    height: 32,
+  };
+
+  snake.unshift(newHead);
+
+  if (eatenFood) {
+    eatenFood = false;
+  } else {
+    snake.pop();
   }
 };
 
-// Snake Movement
-const movement = () => {
-  var new_x = snake[0].x + x_axis * speed;
-  var new_y = snake[0].y + y_axis * speed;
-
-  snake.unshift({ x: new_x, y: new_y });
-  snake.pop();
-};
-
-const borderCheck = () => {
-  // If hit the walls
+const checkCollision = () => {
   if (
-    snake[0].x == 0 ||
-    snake[0].x == canvas.width ||
-    snake[0].y == 0 ||
-    snake[0].y == canvas.height
+    snake[0].x < 0 ||
+    snake[0].x > canvas.width ||
+    snake[0].y < 0 ||
+    snake[0].y >= canvas.height
   ) {
     return true;
   }
 
-  // If overlapping itself
-  if (snake.length > 1) {
-    for (let i = 1; i < snake.length; i++) {
-      if (snake[0].x == snake[i].x && snake[0].y == snake[i].y) {
-        return true;
-        // alert("Game Over!");
-      }
+  for (let i = 1; i < snake.length; i++) {
+    if (snake[0].x === snake[i].x && snake[0].y === snake[i].y) {
+      return true;
     }
   }
 
   return false;
 };
 
-const drawFood = (corx, cory) => {
+const drawFood = () => {
   ctx.beginPath();
-  ctx.arc(corx, cory, 8, 0, Math.PI * 2);
+  ctx.arc(food.x, food.y, 8, 0, Math.PI * 2);
   ctx.fillStyle = "black";
   ctx.fill();
   ctx.closePath();
 };
 
-const randomFood = () => {
-  x_food = (Math.random() * (canvas.width - 20) + 20) / 10;
-  y_food = (Math.random() * (canvas.height - 20) + 20) / 10;
+const generateFood = () => {
+  food = {
+    x: Math.round((Math.random() * (canvas.width - 20) + 20) / 10) * 10,
+    y: Math.round((Math.random() * (canvas.height - 20) + 20) / 10) * 10,
+  };
 };
 
-// Draw Background
-const background = () => {
+const eatFood = () => {
+  const distance = Math.sqrt(
+    (snake[0].x - food.x) ** 2 + (snake[0].y - food.y) ** 2
+  );
+
+  if (distance < 48) {
+    snake.unshift({
+      x: snake[0].x + direction.x * speed,
+      y: snake[0].y + direction.y * speed,
+      width: 32,
+      height: 32,
+    });
+
+    eatenFood = true;
+    generateFood();
+    score++;
+    updateScore(); // Update the score display
+  }
+};
+
+const drawBackground = () => {
   ctx.fillStyle = "#37abcb";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 };
 
-// Update all
-const update = () => {
-  if (borderCheck()) {
-    cancelAnimationFrame(mainTime);
+const updateGame = () => {
+  if (checkCollision()) {
+    clearInterval(gameInterval);
+    const confirmed = window.confirm(`Game over your score is : ${score}`);
+
+    if (confirmed) {
+      window.location.reload();
+    } else {
+      alert("game over!");
+    }
+
+    if (score > highScore) {
+      highScore = score;
+      updateHighScore(); // Update the high score display
+    }
     return;
   }
 
-  background();
+  drawBackground();
   drawSnake();
-  movement();
-  drawFood(x_food, y_food);
-  mainTime = requestAnimationFrame(update);
+  moveSnake();
+  drawFood();
+  eatFood();
 };
 
-// Init All Function
-mainTime = requestAnimationFrame(update);
-randomFood();
+const updateScore = () => {
+  document.getElementById("game-score").innerText = "Score: " + score;
+};
+
+const getHighScore = () => {
+  return localStorage.getItem("highscore") || 0;
+};
+
+const updateHighScore = () => {
+  const currentHighScore = getHighScore();
+  console.log(currentHighScore);
+
+  if (highScore > currentHighScore) {
+    localStorage.setItem("highscore", highScore);
+  }
+
+  document.getElementById("game-highscore").innerText =
+    "High Score: " + getHighScore();
+};
+
+//
+document.addEventListener("keydown", (e) => {
+  if (e.code === "ArrowUp" && direction.y !== 10) {
+    direction = { x: 0, y: -10 };
+  } else if (e.code === "ArrowDown" && direction.y !== -10) {
+    direction = { x: 0, y: 10 };
+  } else if (e.code === "ArrowLeft" && direction.x !== 10) {
+    direction = { x: -10, y: 0 };
+  } else if (e.code === "ArrowRight" && direction.x !== -10) {
+    direction = { x: 10, y: 0 };
+  }
+});
+
+generateFood();
+updateHighScore(); // Update the high score display
+const gameInterval = setInterval(updateGame, 1000 / 15);
