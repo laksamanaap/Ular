@@ -1,16 +1,36 @@
 const canvas = document.getElementById("game-canvas");
 const ctx = canvas.getContext("2d");
+const startScreen = document.getElementById("start-screen");
+const startButton = document.getElementById("start-button");
+const countdownEl = document.getElementById("countdown");
 
-canvas.width = 1000;
-canvas.height = 500;
+// Set canvas size to fit screen while maintaining aspect ratio
+const setCanvasSize = () => {
+  const maxWidth = window.innerWidth * 0.9;
+  const maxHeight = window.innerHeight * 0.7;
+  const aspectRatio = 2;
+
+  if (maxWidth / aspectRatio <= maxHeight) {
+    canvas.width = maxWidth;
+    canvas.height = maxWidth / aspectRatio;
+  } else {
+    canvas.height = maxHeight;
+    canvas.width = maxHeight * aspectRatio;
+  }
+};
+
+setCanvasSize();
+window.addEventListener("resize", setCanvasSize);
 
 let snake = [{ x: 30, y: 100, width: 32, height: 32 }];
 let direction = { x: 10, y: 0 };
-let speed = 2; // Speed of snake
+let speed = 2;
 let eatenFood = false;
 let food = {};
 let score = 0;
-let highScore = 0; // Initialize high score variable
+let highScore = 0;
+let gameInterval = null;
+let gameStarted = false;
 
 const snakeColors = ["orange", "red", "blue", "purple", "green"];
 
@@ -18,7 +38,6 @@ const drawSnake = () => {
   snake.forEach((segment, index) => {
     ctx.fillStyle =
       index === 0 ? snakeColors[0] : snakeColors[index % snakeColors.length];
-
     ctx.beginPath();
     ctx.arc(
       segment.x + segment.width / 2,
@@ -102,7 +121,7 @@ const eatFood = () => {
     eatenFood = true;
     generateFood();
     score++;
-    updateScore(); // Update the score display
+    updateScore();
   }
 };
 
@@ -114,18 +133,21 @@ const drawBackground = () => {
 const updateGame = () => {
   if (checkCollision()) {
     clearInterval(gameInterval);
-    const confirmed = window.confirm(`Game over your score is : ${score}`);
-
-    if (confirmed) {
-      window.location.reload();
-    } else {
-      alert("game over!");
-    }
+    gameStarted = false;
 
     if (score > highScore) {
       highScore = score;
-      updateHighScore(); // Update the high score display
+      updateHighScore();
     }
+
+    setTimeout(() => {
+      const confirmed = window.confirm(
+        `Game Over! Your score: ${score}\n\nPlay again?`
+      );
+      if (confirmed) {
+        resetGame();
+      }
+    }, 100);
     return;
   }
 
@@ -140,24 +162,59 @@ const updateScore = () => {
   document.getElementById("game-score").innerText = "Score: " + score;
 };
 
-const getHighScore = () => {
-  return localStorage.getItem("highscore") || 0;
-};
-
 const updateHighScore = () => {
-  const currentHighScore = getHighScore();
-  console.log(currentHighScore);
-
-  if (highScore > currentHighScore) {
-    localStorage.setItem("highscore", highScore);
-  }
-
   document.getElementById("game-highscore").innerText =
-    "High Score: " + getHighScore();
+    "High Score: " + highScore;
 };
 
-//
+const resetGame = () => {
+  snake = [{ x: 30, y: 100, width: 32, height: 32 }];
+  direction = { x: 10, y: 0 };
+  score = 0;
+  updateScore();
+  startScreen.classList.remove("hidden");
+};
+
+const startCountdown = () => {
+  let count = 3;
+  countdownEl.textContent = count;
+  countdownEl.classList.add("show");
+
+  const countInterval = setInterval(() => {
+    count--;
+    if (count > 0) {
+      countdownEl.textContent = count;
+      countdownEl.classList.remove("show");
+      setTimeout(() => countdownEl.classList.add("show"), 10);
+    } else {
+      countdownEl.textContent = "GO!";
+      countdownEl.classList.remove("show");
+      setTimeout(() => countdownEl.classList.add("show"), 10);
+
+      setTimeout(() => {
+        countdownEl.classList.remove("show");
+        startGame();
+      }, 1000);
+
+      clearInterval(countInterval);
+    }
+  }, 1000);
+};
+
+const startGame = () => {
+  gameStarted = true;
+  generateFood();
+  gameInterval = setInterval(updateGame, 1000 / 15);
+};
+
+startButton.addEventListener("click", () => {
+  startScreen.classList.add("hidden");
+  startCountdown();
+});
+
 document.addEventListener("keydown", (e) => {
+  if (!gameStarted) return;
+
   if (e.code === "ArrowUp" && direction.y !== 10) {
     direction = { x: 0, y: -10 };
   } else if (e.code === "ArrowDown" && direction.y !== -10) {
@@ -169,6 +226,4 @@ document.addEventListener("keydown", (e) => {
   }
 });
 
-generateFood();
-updateHighScore(); // Update the high score display
-const gameInterval = setInterval(updateGame, 1000 / 15);
+updateHighScore();
